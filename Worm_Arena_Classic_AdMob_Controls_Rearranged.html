@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#132a25">
+<title>Worm Arena — Snake.io Adventure</title>
+<!-- AdMob IDs are configured in the script; native Google Mobile Ads SDK bridge is required in the APK. -->
+<style>
+:root{--bg:#10231f;--panel:#18352d;--mint:#a9ef9a;--gold:#ffd36b;--cream:#fff7df}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none;color:#fff}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#8bcf71}
+#hud{position:fixed;inset:0;pointer-events:none;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 128px);display:flex;flex-direction:column;justify-content:space-between}
+.toprow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.brand{font-weight:1000;font-size:clamp(17px,4vw,24px);letter-spacing:.4px;text-shadow:0 2px 0 #173e2c,0 3px 8px #173e2c88}
+.brand small{display:block;font-size:9px;letter-spacing:2px;color:#e6ffd5}
+.stats{display:flex;gap:7px}
+.stat{background:#14382de8;border:2px solid #b8e99a;border-radius:13px;padding:6px 10px;min-width:65px;text-align:center;box-shadow:0 3px 0 #0b241b}
+.stat b{display:block;font-size:17px;line-height:1.1;color:#fff4bd}.stat span{font-size:9px;font-weight:900;letter-spacing:1px;color:#c6edb1}
+#leader{position:absolute;right:12px;top:92px;width:125px;background:#15372ddc;border:1px solid #b9e59a;border-radius:13px;padding:8px 10px;font-size:10px;line-height:1.65}
+#leader strong{display:block;color:#ffe39a;font-size:11px;margin-bottom:2px}
+.bottomrow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}.actions{display:flex;gap:6px;align-items:flex-end}.mini{pointer-events:auto;border:2px solid #d8efad;border-radius:13px;background:#174532ef;color:#fff4c7;padding:9px 10px;font-size:11px;font-weight:1000;box-shadow:0 3px 0 #0b241b;touch-action:manipulation}.mini.active{background:#d9f0a9;color:#285239}
+.hint{background:#15372ddd;border:1px solid #b9e59a;border-radius:12px;padding:8px 11px;font-size:11px;max-width:60%;box-shadow:0 3px 0 #0b241b}
+#boost{pointer-events:auto;width:78px;height:78px;border-radius:50%;border:4px solid #fff0a7;background:radial-gradient(circle at 35% 25%,#ffe98a,#f29b31 70%,#b75b21);box-shadow:0 5px 0 #8b421d,0 8px 20px #14251b88;color:#492b15;font-weight:1000;font-size:13px;touch-action:none}
+#boost:active,#boost.on{transform:scale(.94);filter:brightness(1.15)}
+#leftBtns,#rightBtns{position:fixed;z-index:4;display:flex;flex-direction:column;gap:8px;max-width:42vw}
+#leftBtns{left:10px;bottom:132px;align-items:flex-start}
+#rightBtns{right:10px;bottom:132px;align-items:flex-end}
+#leftBtns .mini,#rightBtns .mini{font-size:10px;padding:9px 10px;min-width:104px;text-align:center}
+#bannerSlot{position:fixed;left:0;right:0;bottom:0;height:50px;z-index:3;display:flex;align-items:center;justify-content:center;background:#10231f;border-top:1px solid #b9e59a66;color:#9db9a0;font-size:9px;font-weight:800;letter-spacing:1.4px;pointer-events:none}
+#bannerSlot span{opacity:.7}
+#boost{position:fixed;right:14px;bottom:62px;z-index:4}
+#hud{padding-bottom:70px}
+.bottomrow{padding-bottom:0}
+
+#featurePanel{position:fixed;inset:0;z-index:12;background:#071a13dd;display:none;align-items:center;justify-content:center;padding:12px;overflow:auto}
+.featureCard{width:min(520px,100%);max-height:94vh;overflow:auto;background:linear-gradient(155deg,#245b42,#143b30);border:3px solid #c9ee9a;border-radius:20px;padding:16px;color:#fff;text-align:center;box-shadow:0 12px 30px #0008}
+.featureCard h2{margin:4px 0 10px;color:#fff0ad}.featureCard button,.featureCard select,.featureCard input{font:700 14px system-ui;border-radius:10px;padding:10px;border:1px solid #c9ee9a;margin:4px}.featureCard button{background:#ffe17a;color:#513216}.featureCard .closeBtn{background:#e8f6d5;color:#27543a}.board{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;margin:10px auto;max-width:420px;aspect-ratio:1}.cell{background:#d8efad;color:#23452d;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center;font-size:clamp(8px,2.3vw,12px);font-weight:900;min-width:0}.cell:nth-child(odd){background:#f6e6a9}.cell small{position:absolute;top:1px;right:2px;font-size:clamp(7px,1.8vw,11px)}.cellTokens{position:absolute;bottom:1px;left:1px;right:1px;display:flex;justify-content:center;gap:1px}.token{font-size:clamp(8px,2vw,12px)}.lbrow{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ffffff33;text-align:left;font-size:13px}
+@media(max-width:430px){#leftBtns{left:7px;bottom:132px}#rightBtns{right:7px;bottom:132px}#leftBtns .mini,#rightBtns .mini{min-width:94px;padding:8px 7px;font-size:9px}.actions{gap:4px}.mini{padding:7px 8px;font-size:10px}#boost{width:68px;height:68px;right:10px;bottom:62px}.hint{max-width:58%;font-size:10px}}
+@media(max-height:650px){#leftBtns,#rightBtns{bottom:112px;gap:5px}#leftBtns .mini,#rightBtns .mini{padding:6px 7px}#boost{bottom:58px}#hud{padding-bottom:64px}}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(#10251c99,#10251cbb);z-index:5}
+.card{width:min(420px,100%);background:linear-gradient(155deg,#245b42,#143b30);border:3px solid #c9ee9a;border-radius:25px;padding:24px 20px;text-align:center;box-shadow:0 12px 0 #0b241b,0 22px 55px #071a13aa}
+.logo{font-size:55px;filter:drop-shadow(0 5px 2px #123)}h1{margin:3px 0 5px;font-size:30px;line-height:1;color:#fff3b8;text-shadow:0 3px #704a22}
+.sub{font-size:12px;color:#d6f3c7;margin:8px 0 17px;line-height:1.5}
+.name{width:100%;padding:13px;border-radius:12px;border:2px solid #b8df91;background:#f9f3d9;color:#274332;font-size:16px;font-weight:800;text-align:center;outline:none}
+.primary{width:100%;margin-top:12px;padding:14px;border:0;border-radius:13px;background:linear-gradient(#ffe17a,#f2a934);color:#513216;font-weight:1000;font-size:17px;box-shadow:0 5px 0 #9b5d21;cursor:pointer}
+.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #9b5d21}
+.secondary{margin-top:10px;background:#e8f6d5;color:#27543a}
+#overTitle{font-size:28px;color:#ffe9a1;margin:0}
+.result{display:flex;justify-content:center;gap:20px;margin:15px 0}.result b{display:block;font-size:22px}.result span{font-size:10px;color:#d8f2c9;font-weight:800}
+#toast{position:fixed;left:50%;top:25%;transform:translate(-50%,-10px);opacity:0;transition:.2s;background:#15372e;color:#fff4c7;border:1px solid #e8d68b;border-radius:20px;padding:9px 15px;font-size:12px;font-weight:900;z-index:8;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(min-width:700px){#hud{padding:18px 22px 70px}.hint{font-size:13px}#leader{right:22px;top:105px}#leftBtns{left:22px;bottom:132px}#rightBtns{right:22px;bottom:132px}#boost{right:28px;bottom:62px}}
+
+/* One persistent bottom banner slot. Android wrapper should anchor the Google Mobile Ads banner in this reserved 50px area. */
+/* The visible label is only a browser placeholder; the real ad creative is rendered by the native AdMob SDK in the APK. */
+/* Full-screen classic grass-board presentation, matched to the supplied reference */
+#featurePanel.ladderMode{padding:0;background:#071a12;align-items:stretch;justify-content:stretch}
+#featurePanel.ladderMode .featureCard{width:100%;height:100dvh;max-height:100dvh;max-width:none;overflow-y:auto;border:0;border-radius:0;padding:10px 10px 18px;background:radial-gradient(ellipse at 20% 15%,#397b32 0,#1c552b 38%,#103d25 100%);text-align:center;box-shadow:none;position:relative}
+#featurePanel.ladderMode .featureCard:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.23;background-image:repeating-linear-gradient(115deg,transparent 0 7px,#b5d77b18 8px 10px,transparent 11px 19px),radial-gradient(#b9d77a55 .7px,transparent 1px);background-size:auto,9px 9px}
+.ladderShell{position:relative;z-index:1;max-width:680px;margin:0 auto;color:#fff5d4}
+.ladderHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.ladderHead h2{margin:0;text-align:left;color:#fff0a7;font-size:clamp(18px,5vw,27px);line-height:1.08;text-shadow:0 2px #613c17}
+.ladderClose{border:2px solid #ffe58a!important;background:#f4d16a!important;color:#4a2e13!important;font-weight:1000;min-width:76px}
+.ladderControls{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;margin:7px 0 10px;font-size:12px;font-weight:900}
+.ladderControls label{display:flex;align-items:center;gap:5px}
+.ladderControls select{margin:0!important;padding:8px 10px!important;border:2px solid #f5e5a8!important;background:#fff7dc!important;color:#24452c!important;font-weight:900!important}
+.ladderControls button{margin:0!important;padding:9px 12px!important;border-radius:13px!important;background:#174e35!important;color:#fff0b5!important;border:2px solid #f5e6a6!important}
+.classicBoardFrame{position:relative;width:min(94vw,calc(100dvh - 245px),620px);min-width:260px;aspect-ratio:1;margin:0 auto;padding:9px;background:#e6c04b;border:5px solid #8b541d;box-shadow:0 5px 0 #563518,0 12px 24px #07190f99}
+.classicBoard{position:relative;width:100%;height:100%;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);overflow:hidden;border:3px solid #6d5424;background:#b7a64c}
+.classicCell{position:relative;display:flex;align-items:flex-start;justify-content:flex-start;padding:2px 3px;font-size:clamp(8px,2.3vw,14px);font-weight:1000;color:#182817;text-shadow:0 1px #fff4a0;border:1px solid #765a29;min-width:0;min-height:0;background-color:#d9a83a;background-image:radial-gradient(#fff3a633 1px,transparent 1.6px),linear-gradient(135deg,#e9bd54,#bd8e2d);background-size:7px 7px,100% 100%}
+.classicCell:nth-child(4n),.classicCell:nth-child(4n+1){background-color:#538a38;background-image:radial-gradient(#e1ef9c55 1px,transparent 1.6px),linear-gradient(135deg,#7eaa4b,#376e30);color:#102514;text-shadow:0 1px #c5df7b}
+.classicCell .cellPawns{position:absolute;right:1px;bottom:1px;left:1px;display:flex;justify-content:center;align-items:center;gap:1px;z-index:4;flex-wrap:wrap}
+.classicPawn{width:clamp(9px,2.5vw,17px);height:clamp(9px,2.5vw,17px);border-radius:50%;border:2px solid #fff8d8;box-shadow:0 1px 3px #111;display:block}
+.boardArt{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible}
+.ladderPlayersBar{display:flex;justify-content:space-between;gap:7px;max-width:min(94vw,620px);margin:12px auto 7px}
+.ladderPlayerCard{flex:1;min-width:0;background:#183e2bdb;border:2px solid #d5b95e;border-radius:15px;padding:7px 4px;color:#fff4d1;box-shadow:0 3px 0 #17321d}
+.ladderAvatar{width:39px;height:39px;margin:0 auto 3px;border:3px solid #f4db9a;border-radius:50%;display:grid;place-items:center;font-size:19px;background:#d9c08a;color:#23452d}
+.ladderPlayerCard b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ladderPlayerCard small{display:block;font-size:10px;color:#e5d9aa}
+.ladderActions{display:flex;align-items:center;justify-content:center;gap:9px;max-width:min(94vw,620px);margin:8px auto}
+.ladderDie{flex:1;max-width:125px;min-height:55px;border-radius:15px!important;background:#f7e9b8!important;border:4px solid #c7a65a!important;color:#172f22!important;font-size:30px!important;margin:0!important}
+.ladderRoll{flex:1.25;min-height:55px;border-radius:15px!important;background:linear-gradient(#ffe07a,#f2a42c)!important;color:#573817!important;font-size:16px!important;font-weight:1000!important;margin:0!important;box-shadow:0 4px 0 #9c5c1e}
+.ladderMessage{max-width:min(94vw,620px);margin:5px auto 10px;text-align:left;background:#123b29df;border:1px solid #b3c875;border-radius:12px;padding:9px 11px;font-size:12px;line-height:1.45;color:#f5edc9}
+.ladderLegend{font-size:10px;color:#f0e2ae;margin:4px auto 8px}
+
+.ladderSetupPage{background:#123b29e8;border:2px solid #d4e99b;border-radius:18px;padding:22px 14px;margin:18px auto;max-width:520px;color:#fff4d2}
+.ladderSetupPage h3,.ladderLeaderboardTitle{margin:5px 0 12px;color:#fff0a7;font-size:21px}
+.ladderSetupPage p{font-size:14px;line-height:1.5}
+.ladderPrimary{display:block!important;width:100%;max-width:360px;margin:16px auto!important;padding:14px!important;border-radius:14px!important;background:linear-gradient(#ffe27c,#f2a42d)!important;color:#573817!important;font-size:17px!important;font-weight:1000!important}
+.ladderStartRoster{max-width:420px;margin:12px auto;text-align:left}
+.ladderRosterRow{display:flex;align-items:center;gap:9px;padding:10px;border-bottom:1px solid #ffffff2b}
+.ladderRosterDot{width:17px;height:17px;border:2px solid white;border-radius:50%;flex:none}
+.ladderRosterRow b{font-size:13px;flex:1}.ladderRosterRow small{font-size:11px;color:#ffedab}
+.ladderRule{background:#0b2e20;border-radius:12px;padding:12px;text-align:left}
+.ladderLeaderboardTitle{margin:10px auto 5px}
+.ladderPlayerCard.activeTurn{background:#315d35;box-shadow:0 0 0 2px #fff0a7,0 4px 0 #17321d}
+.playerDice{display:block;width:100%;padding:5px 2px!important;margin:5px 0 0!important;border-radius:9px!important;background:#f7e9b8!important;color:#263c2b!important;font-size:12px!important;font-weight:1000!important}
+.playerDice:disabled{opacity:.4;filter:grayscale(.5)}
+.ladderRankList{max-width:min(94vw,620px);margin:7px auto;background:#0e3425;border:1px solid #b3c875;border-radius:12px;padding:4px 9px}
+.diceRolling{animation:diceShake .12s linear infinite}
+@keyframes diceShake{0%{transform:rotate(-8deg) scale(.95)}50%{transform:rotate(8deg) scale(1.08)}100%{transform:rotate(-8deg) scale(.95)}}
+@media(max-height:700px){.classicBoardFrame{width:min(88vw,calc(100dvh - 205px),520px);padding:6px}.ladderPlayersBar{margin:7px auto 4px}.ladderAvatar{width:30px;height:30px}.ladderDie,.ladderRoll{min-height:45px!important}}
+@media(min-width:700px){#featurePanel.ladderMode .featureCard{padding:18px}.classicBoardFrame{width:min(76vw,calc(100dvh - 260px),620px)}}
+
+
+/* Updated three-token, per-player-dice full-screen board */
+#featurePanel.ladderMode{padding:0;overflow:hidden}
+#featurePanel.ladderMode .featureCard{padding:8px 10px 10px;overflow:hidden;display:flex;align-items:stretch;justify-content:center}
+.ladderShell{width:100%;height:100%;max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+.ladderSetupShell{justify-content:flex-start;overflow:auto}
+.setupBadge{font-size:10px;letter-spacing:2px;color:#e8df9c;font-weight:1000;margin:10px 0 6px}
+.ladderSetupPage{margin:auto 0;padding:12px 6px}
+.ladderSetupPage h3{font-size:25px;margin:8px 0;color:#fff1b0}
+.setupRules{background:#0c3023;border:1px solid #a9ca7a;border-radius:14px;padding:13px;text-align:left;line-height:1.7;font-size:13px;margin:14px auto;max-width:420px}
+.ladderPrimary{background:linear-gradient(#ffe58a,#f3a42d)!important;color:#573817!important;font-size:16px!important;font-weight:1000!important;padding:13px 22px!important;border-radius:14px!important;min-width:170px}
+.ladderGamePage{height:100%;min-height:0;width:100%;display:flex;flex-direction:column;gap:6px;justify-content:space-between}
+.gameTopline{display:flex;align-items:center;justify-content:space-between;color:#fff1ae;font-weight:1000;font-size:clamp(15px,4vw,21px);text-shadow:0 2px #563518}
+.gameTopline button{border:2px solid #ffe58a;border-radius:10px;padding:6px 10px;background:#f4d16a;color:#4a2e13;font-weight:1000}
+.classicBoardFrame{flex:none;width:min(94vw,calc(100dvh - 350px),540px);min-width:0;aspect-ratio:1;margin:0 auto;padding:5px;background:#e5bf43;border:4px solid #80501f;box-shadow:0 4px 0 #563518,0 8px 18px #07190f99}
+.classicBoard{border:2px solid #66451e;background:#b7a64c}
+.classicCell{border:1px solid #785a2c;padding:1px 2px;font-size:clamp(7px,1.9vw,12px);background-image:radial-gradient(#fff3a633 1px,transparent 1.6px),linear-gradient(135deg,#e9bd54,#bd8e2d)}
+.classicCell:nth-child(4n),.classicCell:nth-child(4n+1){background-image:radial-gradient(#e1ef9c55 1px,transparent 1.6px),linear-gradient(135deg,#7eaa4b,#376e30)}
+.cellPawns{z-index:5;display:flex;gap:1px;flex-wrap:wrap}
+.boardPawn{width:clamp(7px,2vw,13px);height:clamp(7px,2vw,13px);padding:0;margin:0;border:2px solid #fff;border-radius:50%;background:var(--pawn);box-shadow:0 1px 3px #111;min-width:0;min-height:0}
+.boardPawn:disabled{opacity:1}
+.boardPawn.canPick{outline:2px solid #fff5a5;box-shadow:0 0 8px 3px #fff6a8;animation:pawnPulse .7s infinite alternate}
+.boardCenterMark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:24%;aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:radial-gradient(circle,#f9efad,#b8d77d);border:4px solid #f4e49b;color:#24452d;box-shadow:0 2px 8px #193b23aa;pointer-events:none;z-index:3}
+.boardCenterMark b{font-size:clamp(10px,3vw,17px)}.boardCenterMark small{font-size:clamp(7px,1.8vw,10px);font-weight:900}
+.ladderMessage{flex:none;max-width:600px;width:100%;margin:0 auto;background:#0c3023;border:1px solid #d4d99a;border-radius:12px;padding:7px 10px;text-align:left;font-size:11px;line-height:1.35;min-height:38px}
+.ladderCornerGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:100%;max-width:600px;margin:0 auto}
+.cornerCard{padding:6px 7px;border:2px solid var(--player)!important;border-radius:12px;background:#123b2bdc;min-width:0;box-shadow:0 2px 0 #10271c}
+.cornerCard.activeTurn{background:#285b36;box-shadow:0 0 0 2px #fff0a7,0 3px 0 #17321d}
+.cornerPlayerHead{display:flex;align-items:center;gap:5px;min-width:0}.cornerDot{width:10px;height:10px;border-radius:50%;background:var(--player);border:1px solid white;flex:none}.cornerPlayerHead b{font-size:11px;color:var(--player)}.cornerPlayerHead small{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.homePawns{display:flex;gap:3px;min-height:23px;align-items:center;justify-content:flex-start;margin:3px 0}
+.pawnPick{padding:0!important;margin:0!important;width:21px;height:21px;min-width:21px;border-radius:50%!important;border:2px solid #fff!important;background:#f5e9c5!important;color:var(--player)!important;font-size:17px!important;line-height:15px;font-weight:1000!important}
+.pawnPick:disabled{opacity:.7}.pawnPick.canPick{background:#fff5a4!important;box-shadow:0 0 0 2px #fff4a0,0 0 10px #fff5a4;animation:pawnPulse .7s infinite alternate}
+.homeTokenOnBoard{font-size:10px;color:#fff3bd;background:#173e2c;border-radius:6px;padding:3px 5px}
+.cornerDice{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:5px 6px!important;margin:2px 0!important;border-radius:9px!important;background:#f6df9e!important;color:#3c2a17!important;border:2px solid #c4a25a!important;font-size:10px!important;font-weight:1000!important;min-height:37px}
+.cornerDice:disabled{opacity:.42;filter:grayscale(.6)}.cornerDice.turnDice{background:linear-gradient(#ffe58a,#f4a52e)!important;opacity:1;filter:none}
+.diceSymbol{font-size:23px;line-height:1}.playerProgress{display:block;font-size:8px;color:#dce9c4;text-align:center;white-space:nowrap}
+.ladderRankList{flex:none;width:100%;max-width:600px;margin:0 auto;background:#0e3425;border:1px solid #b3c875;border-radius:10px;padding:4px 8px;font-size:10px}.ladderRankList>.lbrow{padding:3px 2px;font-size:10px}
+.ladderLegend{font-size:9px;line-height:1.25;color:#e5edc9;text-align:center;margin:0 auto;max-width:600px}
+@keyframes pawnPulse{from{transform:scale(.95)}to{transform:scale(1.12)}}
+.rankHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 1px 5px}.tuneToggle{border:1px solid #f1dc91;border-radius:8px;padding:5px 8px;background:#174a32;color:#fff0b5;font-size:9px;font-weight:1000}.cornerDice:disabled{opacity:.72;filter:none}.cornerDice:not(:disabled){box-shadow:0 0 0 2px #fff0a7,0 0 12px #ffe28a88}.cornerDice .diceSymbol{display:inline-grid;place-items:center;min-width:28px;min-height:28px;border-radius:7px;background:#fff7dc;color:#263b2b;text-shadow:0 1px #fff;font-size:25px}.diceRolling{animation:diceShake .10s linear infinite!important}
+@media(max-height:720px){.rankHead{padding-bottom:2px}.tuneToggle{padding:3px 6px}}
+
+@media(max-height:720px){#featurePanel.ladderMode .featureCard{padding:5px 7px}.ladderGamePage{gap:3px}.classicBoardFrame{width:min(88vw,calc(100dvh - 300px),470px);padding:4px}.cornerCard{padding:4px 5px}.homePawns{min-height:19px;margin:1px 0}.cornerDice{min-height:30px;padding:3px!important}.diceSymbol{font-size:19px}.ladderMessage{padding:5px 8px;min-height:32px}.ladderLegend{font-size:8px}}
+@media(min-width:700px){.classicBoardFrame{width:min(64vw,calc(100dvh - 340px),540px)}.ladderCornerGrid{grid-template-columns:repeat(4,minmax(0,1fr))}.ladderGamePage{max-width:720px;margin:auto}.cornerCard{padding:8px}.playerProgress{font-size:9px}}
+
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <div class="toprow">
+  <div class="brand">🐛 WORM ARENA <small>GROW • DODGE • SURVIVE</small></div>
+  <div class="stats"><div class="stat"><b id="score">0</b><span>SCORE</span></div><div class="stat"><b id="length">8</b><span>LENGTH</span></div><div class="stat"><b id="coins">0</b><span>COINS</span></div></div>
+ </div>
+ <div id="leader"><strong>🏆 TOP WORMS</strong><div id="leaders">1. You<br>2. Greenie<br>3. Bubbles</div></div>
+ <div class="bottomrow"><div class="hint">👆 Drag anywhere to steer<br>⚡ Hold BOOST to speed up</div></div>
+</div>
+<div id="leftBtns">
+ <button class="mini" id="squadBtn">🏆 SQUAD</button>
+ <button class="mini" id="ladderBtn">🎲 SNAKE &amp; LADDER</button>
+ <button class="mini" id="musicBtn">🎵 MUSIC: OFF</button>
+</div>
+<div id="rightBtns">
+ <button class="mini" id="twinBtn">👯 TWIN: OFF</button>
+ <button class="mini" id="shopBtn">🐍 SKINS</button>
+</div>
+<button id="boost">⚡<br>BOOST</button>
+<div id="bannerSlot"><span>ADVERTISEMENT · BANNER AREA</span></div>
+<div id="featurePanel"><div class="featureCard" id="featureContent"></div></div>
+<div id="toast"></div>
+<div id="overlay">
+ <div class="card" id="startCard">
+  <div class="logo">🐛</div><h1>WORM ARENA</h1>
+  <div class="sub">Eat glowing snacks and coins, grow fast, dodge rival worms and deadly bombs. Survive the crowded arena!</div>
+  <input class="name" id="playerName" maxlength="12" value="Player" aria-label="Worm name">
+  <button class="primary" id="play">PLAY NOW</button>
+  <div class="sub">Mobile: drag to steer • Hold BOOST for a burst</div>
+ </div>
+ <div class="card" id="endCard" hidden>
+  <div class="logo">💥</div><h2 id="overTitle">Worm down!</h2><div class="sub">Your run has ended. Try again and beat your best score.</div>
+  <div class="result"><div><b id="finalScore">0</b><span>SCORE</span></div><div><b id="bestScore">0</b><span>BEST</span></div></div>
+  <button class="primary" id="rewardAdBtn">🎁 WATCH AD · GET 50 COINS</button>
+  <button class="primary secondary" id="again">PLAY AGAIN</button>
+ </div>
+</div>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+
+// AdMob configuration for the Android wrapper. These IDs are NOT executable
+// by a plain HTML page: the APK must implement the AndroidAds JavaScript bridge
+// and load Google Mobile Ads SDK native ads using the matching IDs below.
+const ADMOB_CONFIG = Object.freeze({
+  appId: 'ca-app-pub-2396041971738138~1559323709',
+  rewarded: 'ca-app-pub-2396041971738138/5989523300',
+  bannerPrimary: 'ca-app-pub-2396041971738138/8040971575',
+  bannerAlternate: 'ca-app-pub-2396041971738138/3778292934',
+  interstitial: 'ca-app-pub-2396041971738138/6035744431',
+  unclassifiedUnit: 'ca-app-pub-2396041971738138/2288071111' // supplied ID; type not confirmed, so not requested
+});
+window.WormArenaAdMobConfig = ADMOB_CONFIG;
+
+function adBridgeAvailable(){
+  return !!(window.AndroidAds && typeof window.AndroidAds.showBannerAd === 'function');
+}
+function requestBannerAd(){
+  if(adBridgeAvailable()){
+    // Use one bottom-anchored banner unit at a time; do not stack both Banner IDs.
+    try{window.AndroidAds.showBannerAd(ADMOB_CONFIG.bannerPrimary)}
+    catch(e){console.warn('Banner ad bridge error:',e)}
+  }
+}
+function requestInterstitialAd(){
+  if(window.AndroidAds && typeof window.AndroidAds.showInterstitialAd === 'function'){
+    try{window.AndroidAds.showInterstitialAd(ADMOB_CONFIG.interstitial)}
+    catch(e){console.warn('Interstitial ad bridge error:',e)}
+  }
+}
+function requestRewardedAd(){
+  if(!window.AndroidAds || typeof window.AndroidAds.showRewardedAd !== 'function'){
+    showToast('Reward ads will work after AdMob is connected in the APK');
+    return;
+  }
+  try{window.AndroidAds.showRewardedAd(ADMOB_CONFIG.rewarded)}
+  catch(e){showToast('Reward ad could not be opened')}
+}
+// Called by the native Android wrapper ONLY after the SDK confirms a completed reward.
+window.onAdRewardEarned=function(){
+  wallet+=50;
+  localStorage.setItem('wormArenaCoins',String(wallet));
+  updateHud();
+  showToast('🎉 50 coins added!');
+};
+window.onAdClosed=function(){};
+let W=0,H=0,DPR=1,world={w:2600,h:2600},camera={x:1300,y:1300};
+let player=null,bots=[],foods=[],coinsOnMap=[],bombs=[],particles=[],running=false,score=0,best=Number(localStorage.getItem('wormArenaBest')||0),wallet=Number(localStorage.getItem('wormArenaCoins')||0),twinOn=false,skin='#ffb83f';
+let pointer={x:0,y:0,active:false},boosting=false,last=0,foodClock=0,botClock=0,squadName='My Squad',musicOn=false,audioCtx=null,musicTimer=null;try{skin=localStorage.getItem('wormArenaSkin')||skin}catch(e){}
+const COLORS=['#ffb84d','#f37b66','#77d8a6','#8e9cff','#f4a6d7','#f2dc65','#63c9e8','#b99aff','#ff6f91','#6ce0d1','#d7a4ff','#f5a623'];
+const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+function makeWorm(name,x,y,color,isPlayer=false){let body=[];for(let i=0;i<9;i++)body.push({x:x-i*13,y});return {name,x,y,angle:rand(0,Math.PI*2),target:rand(0,Math.PI*2),speed:105,baseSpeed:105,radius:12,color,body,isPlayer,alive:true,aiTimer:0,boost:0,score:0}}
+function spawnFood(x=rand(80,world.w-80),y=rand(80,world.h-80),value=2){foods.push({x,y,r:rand(5,9),value,color:COLORS[Math.floor(Math.random()*COLORS.length)],phase:rand(0,6.28)})}
+function spawnCoin(x=rand(80,world.w-80),y=rand(80,world.h-80),value=1){coinsOnMap.push({x,y,r:9,value,phase:rand(0,6.28)})}
+function spawnBomb(x=rand(100,world.w-100),y=rand(100,world.h-100)){bombs.push({x,y,r:15,phase:rand(0,6.28)})}
+function reset(){score=0;foods=[];coinsOnMap=[];bombs=[];bots=[];particles=[];player=makeWorm(($('playerName').value.trim()||'Player').slice(0,12),world.w/2,world.h/2,skin,true);for(let i=0;i<24;i++)bots.push(makeWorm(['Munchy','Greenie','Bubbles','Noodle','Zippy','Kiwi','Peppy','Dot','Sunny','Chomper','Pudding','Rocket','Pickle','Mango','Coco','Wiggles','Biscuit','Jelly','Tango','Pip','Lime','Cookie','Doodle','Berry'][i],rand(180,world.w-180),rand(180,world.h-180),COLORS[i%COLORS.length]));for(let i=0;i<650;i++)spawnFood();for(let i=0;i<95;i++)spawnCoin();for(let i=0;i<16;i++)spawnBomb();camera.x=player.x;camera.y=player.y;updateHud();$('coins').textContent=wallet;$('twinBtn').textContent='👯 TWIN: '+(twinOn?'ON':'OFF');$('twinBtn').classList.toggle('active',twinOn)}
+function updateHud(){$('score').textContent=score;$('length').textContent=player?player.body.length:8;$('coins').textContent=wallet}
+function showToast(t){let el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>el.classList.remove('show'),1300)}
+function start(){reset();running=true;$('overlay').style.display='none';last=performance.now();requestAnimationFrame(loop)}
+$('play').addEventListener('click',start);$('again').addEventListener('click',start);
+function pointerAt(e){const r=canvas.getBoundingClientRect();pointer.x=e.clientX-r.left-W/2;pointer.y=e.clientY-r.top-H/2;pointer.active=true}
+canvas.addEventListener('pointerdown',e=>{pointerAt(e);canvas.setPointerCapture?.(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(e.buttons||e.pointerType==='touch')pointerAt(e)});
+canvas.addEventListener('pointerup',()=>{pointer.active=false});
+canvas.addEventListener('pointercancel',()=>{pointer.active=false});
+$('boost').addEventListener('pointerdown',e=>{e.preventDefault();boosting=true;$('boost').classList.add('on')});
+['pointerup','pointercancel','pointerleave'].forEach(ev=>$('boost').addEventListener(ev,()=>{boosting=false;$('boost').classList.remove('on')}));
+function angleDiff(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a))}
+function steer(w,dt){let desired=w.target;if(w.isPlayer){if(pointer.active&&Math.hypot(pointer.x,pointer.y)>8)desired=Math.atan2(pointer.y,pointer.x);else desired=w.angle}else{w.aiTimer-=dt;if(w.aiTimer<=0){let f=nearestFood(w.x,w.y,430);if(f)w.target=Math.atan2(f.y-w.y,f.x-w.x)+rand(-.35,.35);else w.target+=rand(-1.5,1.5);w.aiTimer=rand(.5,1.5)}desired=w.target}
+let d=angleDiff(w.angle,desired);w.angle+=Math.max(-3.2*dt,Math.min(3.2*dt,d));
+let fast=w.isPlayer?boosting:w.boost>0;w.speed=w.baseSpeed*(fast?1.65:1);if(w.isPlayer&&fast&&w.body.length>5&&Math.random()<.12){w.body.pop();score=Math.max(0,score-1)}
+w.x+=Math.cos(w.angle)*w.speed*dt;w.y+=Math.sin(w.angle)*w.speed*dt;
+w.x=Math.max(15,Math.min(world.w-15,w.x));w.y=Math.max(15,Math.min(world.h-15,w.y));
+w.body.unshift({x:w.x,y:w.y});let spacing=11.5;while(w.body.length>Math.max(8,Math.floor(8+score*1.15)))w.body.pop();for(let i=1;i<w.body.length;i++){let a=w.body[i-1],b=w.body[i],dd=Math.hypot(a.x-b.x,a.y-b.y);if(dd>spacing){b.x+=(a.x-b.x)*(dd-spacing)/dd;b.y+=(a.y-b.y)*(dd-spacing)/dd}}
+}
+function nearestFood(x,y,range){let bestF=null,bd=range;for(let f of foods){let d=Math.hypot(f.x-x,f.y-y);if(d<bd){bd=d;bestF=f}}return bestF}
+function eatFood(w){
+ for(let i=foods.length-1;i>=0;i--){let f=foods[i];if(Math.hypot(w.x-f.x,w.y-f.y)<w.radius+f.r+5){foods.splice(i,1);for(let n=0;n<f.value;n++)w.body.push({...w.body[w.body.length-1]});w.score=(w.score||0)+f.value;if(w.isPlayer){score+=f.value;updateHud()}for(let k=0;k<5;k++)particles.push({x:f.x,y:f.y,vx:rand(-45,45),vy:rand(-45,45),life:.35,color:f.color})}}
+ for(let i=coinsOnMap.length-1;i>=0;i--){let c=coinsOnMap[i];if(Math.hypot(w.x-c.x,w.y-c.y)<w.radius+c.r+4){coinsOnMap.splice(i,1);if(w.isPlayer){wallet+=c.value;localStorage.setItem('wormArenaCoins',String(wallet));showToast('🪙 +'+c.value+' coins');updateHud()}}}
+ for(let b of bombs){if(Math.hypot(w.x-b.x,w.y-b.y)<w.radius+b.r-2){if(w.isPlayer){gameOver('💣 You hit a bomb!');return}else{dropWormLoot(w);w.alive=false;return}}}
+}
+function dropWormLoot(w){let amount=Math.max(12,Math.floor(w.body.length*.75));for(let j=0;j<amount;j++){let p=w.body[Math.min(w.body.length-1,Math.floor(j*w.body.length/amount))]||w;spawnFood(p.x+rand(-18,18),p.y+rand(-18,18),1)}for(let j=0;j<Math.max(3,Math.floor(w.body.length/7));j++)spawnCoin(w.x+rand(-35,35),w.y+rand(-35,35),1)}
+function crashCheck(){let all=[player,...bots];for(let w of all){if(!w.alive)continue;for(let other of all){if(!other.alive||other===w)continue;for(let i=4;i<other.body.length;i+=2){if(Math.hypot(w.x-other.body[i].x,w.y-other.body[i].y)<w.radius+5){if(w.isPlayer){gameOver('💥 You crashed into a worm!');return}else{dropWormLoot(w);w.alive=false;break}}}}}}
+function update(dt){if(!player)return;steer(player,dt);for(let b of bots){if(b.alive){steer(b,dt);eatFood(b)}}eatFood(player);crashCheck();foodClock+=dt;if(foodClock>0.12&&foods.length<700){spawnFood();foodClock=0}botClock+=dt;if(botClock>2.2){botClock=0;if(bots.filter(b=>b.alive).length<24)bots.push(makeWorm('Rookie',rand(150,world.w-150),rand(150,world.h-150),COLORS[Math.floor(rand(0,COLORS.length))]))}if(Math.random()<dt*.12&&coinsOnMap.length<120)spawnCoin();if(Math.random()<dt*.025&&bombs.length<22)spawnBomb();for(let p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}particles=particles.filter(p=>p.life>0);camera.x+=(player.x-camera.x)*Math.min(1,dt*5);camera.y+=(player.y-camera.y)*Math.min(1,dt*5);updateHud()}
+function drawBackground(){ctx.fillStyle='#8dce72';ctx.fillRect(0,0,W,H);let left=camera.x-W/2,top=camera.y-H/2;ctx.save();ctx.translate(-left,-top);ctx.fillStyle='#a6db83';ctx.fillRect(0,0,world.w,world.h);ctx.strokeStyle='#75b65f';ctx.lineWidth=1;for(let x=0;x<world.w;x+=70){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,world.h);ctx.stroke()}for(let y=0;y<world.h;y+=70){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(world.w,y);ctx.stroke()}
+for(let i=0;i<75;i++){let x=(i*317)%world.w,y=(i*571)%world.h;ctx.fillStyle=i%2?'#6eae5b':'#c3e89a';ctx.beginPath();ctx.arc(x,y,randStatic(i,4,9),0,Math.PI*2);ctx.fill()}
+ctx.strokeStyle='#427d4c';ctx.lineWidth=12;ctx.strokeRect(0,0,world.w,world.h);ctx.restore()}
+function randStatic(i,a,b){let v=Math.sin(i*91.7)*43758.5;return a+(v-Math.floor(v))*(b-a)}
+function drawFood(){for(let f of foods){let x=f.x-camera.x+W/2,y=f.y-camera.y+H/2;if(x<-20||x>W+20||y<-20||y>H+20)continue;ctx.shadowColor=f.color;ctx.shadowBlur=9;ctx.fillStyle=f.color;ctx.beginPath();ctx.arc(x,y,f.r+Math.sin(performance.now()/260+f.phase)*1.2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff9d9';ctx.beginPath();ctx.arc(x-f.r*.3,y-f.r*.3,Math.max(1.5,f.r*.25),0,Math.PI*2);ctx.fill()}}
+function drawPickups(){for(let c of coinsOnMap){let x=c.x-camera.x+W/2,y=c.y-camera.y+H/2;if(x<-25||x>W+25||y<-25||y>H+25)continue;ctx.fillStyle='#e8a928';ctx.strokeStyle='#fff0a3';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,c.r+Math.sin(performance.now()/240+c.phase)*1.3,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#fff4bd';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText('$',x,y+3)}for(let b of bombs){let x=b.x-camera.x+W/2,y=b.y-camera.y+H/2;if(x<-30||x>W+30||y<-30||y>H+30)continue;ctx.fillStyle='#252b30';ctx.strokeStyle='#ff765e';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,b.r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#ffdf79';ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillText('!',x,y+5);ctx.strokeStyle='#ff9c52';ctx.beginPath();ctx.moveTo(x+7,y-12);ctx.lineTo(x+13,y-19);ctx.stroke()}}
+function drawTwin(){if(!twinOn||!player||!player.body.length)return;let twin={...player,name:'Twin',color:'#8ef5ff',body:player.body.map((p,i)=>({x:p.x+Math.sin(i*.12)*19,y:p.y+Math.cos(i*.12)*19}))};drawWorm(twin)}
+function drawWorm(w){if(!w.alive)return;for(let i=w.body.length-1;i>=0;i--){let p=w.body[i],x=p.x-camera.x+W/2,y=p.y-camera.y+H/2;if(x<-50||x>W+50||y<-50||y>H+50)continue;let r=w.radius*(1-i/w.body.length*.22);ctx.fillStyle=w.color;ctx.strokeStyle='#274b32';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.stroke();if(w.isPlayer&&skin==='#d9a441'){ctx.strokeStyle='#f8d98a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r*.68,Math.PI,Math.PI*2);ctx.stroke()}else if(w.isPlayer&&skin==='#252b38'){ctx.fillStyle='#aab2c4';ctx.beginPath();ctx.arc(x-r*.22,y-r*.12,2,0,Math.PI*2);ctx.arc(x+r*.22,y-r*.12,2,0,Math.PI*2);ctx.fill()}else if(w.isPlayer&&skin==='#4e9b58'){ctx.strokeStyle='#b9e78c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-r*.65,y);ctx.lineTo(x+r*.65,y);ctx.stroke()}if(i===0){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+Math.cos(w.angle-.55)*5,y+Math.sin(w.angle-.55)*5,4,0,Math.PI*2);ctx.arc(x+Math.cos(w.angle+.55)*5,y+Math.sin(w.angle+.55)*5,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#17261e';ctx.beginPath();ctx.arc(x+Math.cos(w.angle-.55)*6,y+Math.sin(w.angle-.55)*6,1.8,0,Math.PI*2);ctx.arc(x+Math.cos(w.angle+.55)*6,y+Math.sin(w.angle+.55)*6,1.8,0,Math.PI*2);ctx.fill()}}
+let hx=w.x-camera.x+W/2,hy=w.y-camera.y+H/2;ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#23452d';ctx.fillText(w.name,hx,hy-21)}
+function draw(){drawBackground();ctx.save();ctx.translate(0,0);drawFood();drawPickups();for(let b of bots)drawWorm(b);drawWorm(player);drawTwin();for(let p of particles){ctx.globalAlpha=Math.max(0,p.life/.35);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x-camera.x+W/2,p.y-camera.y+H/2,3,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;ctx.restore();if(player){let ranking=[{name:player.name,score:score},...bots.map(b=>({name:b.name,score:b.score||0}))].sort((a,b)=>b.score-a.score).slice(0,5);$('leaders').innerHTML=ranking.map((r,i)=>`${i+1}. ${r.name} — ${r.score}`).join('<br>')}}
+function loop(now){if(!running)return;let dt=Math.min(.04,(now-last)/1000||0);last=now;update(dt);draw();if(running)requestAnimationFrame(loop)}
+function gameOver(reason='Worm down!'){running=false;requestInterstitialAd();$('overTitle').textContent=reason;best=Math.max(best,score);localStorage.setItem('wormArenaBest',String(best));$('finalScore').textContent=score;$('bestScore').textContent=best;$('overlay').style.display='flex';$('startCard').hidden=true;$('endCard').hidden=false}
+$('twinBtn').addEventListener('click',()=>{twinOn=!twinOn;$('twinBtn').textContent='👯 TWIN: '+(twinOn?'ON':'OFF');$('twinBtn').classList.toggle('active',twinOn);showToast(twinOn?'Twin buddy ON':'Twin buddy OFF')});
+$('shopBtn').addEventListener('click',openSkinShop);
+$('rewardAdBtn').addEventListener('click',requestRewardedAd);
+window.addEventListener('load',()=>{requestBannerAd()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)requestBannerAd()});
+function openPanel(html){$('featureContent').innerHTML=html;$('featurePanel').style.display='flex'}
+function closePanel(){$('featurePanel').style.display='none'}
+const skinItems=[{name:'Classic',color:'#ffb83f',cost:0,emoji:'🐍'},{name:'Cobra',color:'#d9a441',cost:40,emoji:'🐍'},{name:'Anaconda',color:'#4e9b58',cost:70,emoji:'🐍'},{name:'Black Mamba',color:'#252b38',cost:100,emoji:'🐍'}];
+function openSkinShop(){openPanel(`<h2>🐍 SNAKE SKIN SHOP</h2><p>आपके coins: <b>${wallet}</b></p>${skinItems.map((x,i)=>`<button data-skin="${i}">${x.emoji} ${x.name} · ${x.cost===0?'FREE':x.cost+' coins'} ${skin===x.color?'✓ EQUIPPED':''}</button>`).join('')}<p><button class="closeBtn" id="closeFeature">CLOSE</button></p>`);$('closeFeature').onclick=closePanel;$('featureContent').querySelectorAll('[data-skin]').forEach(btn=>btn.onclick=()=>{let x=skinItems[+btn.dataset.skin];if(skin===x.color){showToast('Already equipped');return}let owned=JSON.parse(localStorage.getItem('wormArenaOwnedSkins')||'[0]');if(!owned.includes(+btn.dataset.skin)){if(wallet<x.cost){showToast('Not enough coins!');return}wallet-=x.cost;owned.push(+btn.dataset.skin);localStorage.setItem('wormArenaCoins',String(wallet));localStorage.setItem('wormArenaOwnedSkins',JSON.stringify(owned))}skin=x.color;localStorage.setItem('wormArenaSkin',skin);if(player)player.color=skin;updateHud();showToast(x.name+' skin equipped');openSkinShop()})}
+$('squadBtn').onclick=()=>{let names=prompt('Squad ke 3 member names comma se likhein:', 'Greenie, Bubbles, Noodle');if(names===null)return;let roster=names.split(',').map(x=>x.trim()).filter(Boolean).slice(0,3);squadName=(prompt('Squad ka naam:',squadName)||squadName).slice(0,20);let scores=[{name:player?.name||$('playerName').value||'You',score:score},...roster.map((n,i)=>({name:n,score:(bots.find(b=>b.name.toLowerCase()===n.toLowerCase())||{}).score||0}))].sort((a,b)=>b.score-a.score);openPanel(`<h2>🏆 ${squadName} LEADERBOARD</h2><p>Squad players ke live scores</p>${scores.map((x,i)=>`<div class="lbrow"><span>${i+1}. ${x.name}</span><b>${x.score} pts</b></div>`).join('')}<p><button class="closeBtn" id="closeFeature">CLOSE</button></p>`);$('closeFeature').onclick=closePanel};
+// Light original synthesized game tune; starts only after the player enables it.
+function musicStart(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();let notes=[392,493.88,587.33,493.88,440,523.25,659.25,587.33,392,440,523.25,659.25],i=0;musicTimer=setInterval(()=>{if(!musicOn)return;let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=notes[i++%notes.length];g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.032,audioCtx.currentTime+.05);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.48);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.5)},520)}catch(e){showToast('Music unavailable in this browser')}}
+$('musicBtn').onclick=()=>{musicOn=!musicOn;$('musicBtn').textContent='🎵 MUSIC: '+(musicOn?'ON':'OFF');$('musicBtn').classList.toggle('active',musicOn);if(musicOn){if(!musicTimer)musicStart();else audioCtx?.resume()}else if(audioCtx)audioCtx.suspend()};
+// Playable original Snakes & Ladders mini-game (inspired by classic rules).
+// The linked Gametion app is offered separately; its proprietary app/assets are not copied.
+let ladderPlayers=[],ladderTurn=0,ladderBusy=false,ladderLastMsg='पहले खिलाड़ी चुनें।',ladderStageMode='setup',ladderCpuCount=0,ladderRolled=null,ladderWinner=null,ladderTuneOn=false,ladderTuneTimer=null;
+const ladders={3:22,8:30,20:41,28:55,36:44,51:67,71:91,80:100};
+const snakes={17:7,54:34,62:19,64:60,87:24,93:73,95:75,98:79};
+const ladderColors=['#e94b43','#318bd5','#f0c83d','#39a96b'];
+const ladderNames=['RED','BLUE','YELLOW','GREEN'];
+const ladderEmojis=['🔴','🔵','🟡','🟢'];
+const diceFaces=['⚀','⚁','⚂','⚃','⚄','⚅'];
+function ladderSetup(){
+ $('featurePanel').classList.add('ladderMode');
+ openPanel(`<div class="ladderShell ladderSetupShell"><div class="ladderHead"><h2>🐍 SNAKES &amp; LADDERS</h2><button class="ladderClose" id="exitLadder">✕<br>CLOSE</button></div><section class="ladderSetupPage"><div class="setupBadge">WORM ARENA • CLASSIC BOARD</div><h3>खिलाड़ी चुनें</h3><p>कितने खिलाड़ी खेलेंगे?</p><div class="ladderControls"><label>Players <select id="ladderCount"><option value="2">2 Players</option><option value="3" selected>3 Players</option><option value="4">4 Players</option></select></label><label>Computer <select id="cpuCount"><option value="0" selected>0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div><div class="setupRules"><b>गेम के नियम</b><br>• हर खिलाड़ी की 3 गोटियाँ होंगी।<br>• गोटी घर से निकालने के लिए 1 चाहिए।<br>• 1 या 6 आने पर एक और चाल मिलेगी।<br>• डाइस के बाद अपनी गोटी खुद चुनें।<br>• साँप नीचे लाएगा, सीढ़ी ऊपर पहुँचाएगी।</div><button class="ladderPrimary" id="toLadderStart">CONTINUE →</button></section></div>`);
+ $('exitLadder').onclick=()=>{$('featurePanel').classList.remove('ladderMode');closePanel()};
+ $('ladderCount').onchange=()=>{$('cpuCount').value=String(Math.min(Number($('cpuCount').value),Number($('ladderCount').value)-1))};
+ $('toLadderStart').onclick=ladderStartScreen;
+}
+function ladderStartScreen(){
+ const total=Number($('ladderCount').value),cpu=Math.min(Number($('cpuCount').value),total-1);ladderCpuCount=cpu;
+ const roster=Array.from({length:total},(_,i)=>({name:i===0?(($('playerName').value||'You').trim()||'You'):'Player '+(i+1),cpu:i>=total-cpu,color:ladderColors[i],label:ladderNames[i]}));
+ document.querySelector('.ladderSetupPage').innerHTML=`<div class="setupBadge">READY TO PLAY</div><h3>🎲 गेम शुरू करें</h3><p>${total} खिलाड़ी • हर खिलाड़ी की 3 गोटियाँ और अपना डाइस</p><div class="ladderStartRoster">${roster.map((p,i)=>`<div class="ladderRosterRow"><span class="ladderRosterDot" style="background:${p.color}"></span><b>${p.label} — ${p.name}${p.cpu?' 🤖':''}</b><small>${i===0?'पहली बारी':''}</small></div>`).join('')}</div><div class="setupRules">पहली बारी RED की होगी। डाइस रोल करने के बाद जिस गोटी को चलाना है, उसी पर टैप करें। गेम स्क्रीन पर हर खिलाड़ी का डाइस उसके अपने कार्ड में रहेगा।</div><div class="ladderControls"><button id="backLadderSetup">← BACK</button><button class="ladderPrimary" id="beginLadder">▶ START GAME</button></div>`;
+ $('backLadderSetup').onclick=ladderSetup;
+ $('beginLadder').onclick=()=>startLadderGame(total,cpu);
+}
+function startLadderGame(total=Number($('ladderCount')?.value||3),cpu=ladderCpuCount){
+ const setupPage=document.querySelector('.ladderSetupPage');if(setupPage)setupPage.innerHTML='<div id="ladderStage"></div>';
+ ladderTuneOn=true; startLadderTune();
+ ladderPlayers=Array.from({length:total},(_,i)=>({name:i===0?(($('playerName').value||'You').trim()||'You'):'Player '+(i+1),cpu:i>=total-cpu,color:ladderColors[i],emoji:ladderEmojis[i],label:ladderNames[i],tokens:[0,0,0],lastDice:'—',finished:0}));
+ ladderTurn=0;ladderBusy=false;ladderRolled=null;ladderWinner=null;ladderLastMsg='RED की बारी। गोटी निकालने के लिए 1 लाएँ।';ladderStageMode='game';ladderBoard();
+}
+function ladderCellNumber(row,col){const fromBottom=9-row;return fromBottom%2===0?fromBottom*10+col+1:fromBottom*10+(10-col)}
+function ladderXY(n){const rowFromBottom=Math.floor((n-1)/10),offset=(n-1)%10,col=rowFromBottom%2===0?offset:9-offset;return {x:(col+.5)*100,y:(9-rowFromBottom+.5)*100}}
+function ladderArt(){
+ let svg='';
+ for(const [a,b] of Object.entries(ladders)){const p=ladderXY(+a),q=ladderXY(b),dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy),nx=-dy/len*8,ny=dx/len*8;svg+=`<g stroke="#75421f" stroke-width="7" stroke-linecap="round" fill="none"><path d="M ${p.x+nx} ${p.y+ny} L ${q.x+nx} ${q.y+ny}"/><path d="M ${p.x-nx} ${p.y-ny} L ${q.x-nx} ${q.y-ny}"/></g>`;for(let k=1;k<Math.floor(len/24);k++){let t=k/Math.floor(len/24),x=p.x+dx*t,y=p.y+dy*t;svg+=`<path d="M ${x+nx} ${y+ny} L ${x-nx} ${y-ny}" stroke="#e0b879" stroke-width="5" stroke-linecap="round"/>`}}
+ const snakeColors=['#22b86b','#e14f47','#e7df77','#20b8d0','#a94ec5','#e6a33c','#477fe0','#e8e5d5'];let si=0;
+ for(const [a,b] of Object.entries(snakes)){const p=ladderXY(+a),q=ladderXY(b),mx=(p.x+q.x)/2,my=(p.y+q.y)/2,dx=q.x-p.x,dy=q.y-p.y,perp=Math.hypot(dx,dy)||1,curve=26+(si%3)*9,cx=mx-dy/perp*curve,cy=my+dx/perp*curve,color=snakeColors[si++%snakeColors.length];svg+=`<path d="M ${p.x} ${p.y} Q ${cx} ${cy} ${q.x} ${q.y}" fill="none" stroke="#18351e" stroke-width="20" stroke-linecap="round" opacity=".6"/><path d="M ${p.x} ${p.y} Q ${cx} ${cy} ${q.x} ${q.y}" fill="none" stroke="${color}" stroke-width="13" stroke-linecap="round"/><circle cx="${p.x}" cy="${p.y}" r="10" fill="${color}" stroke="#183a22" stroke-width="3"/>`}
+ return `<svg class="boardArt" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">${svg}</svg>`;
+}
+function ladderPawnButton(p,pi,ti,where){const pos=p.tokens[ti];const selectable=pi===ladderTurn&&ladderRolled!==null&&!p.cpu&&!ladderBusy&&((pos===0&&ladderRolled===1)||(pos>0&&pos+ladderRolled<=100));return `<button class="pawnPick ${selectable?'canPick':''}" data-pawn-player="${pi}" data-pawn-token="${ti}" style="--pawn:${p.color}" ${selectable?'':'disabled'} title="${p.label} token ${ti+1}">${pos===0?'○':'●'}</button>`}
+function ladderBoard(){
+ if(!$('ladderStage'))return;
+ let cells='';for(let row=0;row<10;row++)for(let col=0;col<10;col++){const n=ladderCellNumber(row,col),pawns=ladderPlayers.flatMap((p,pi)=>p.tokens.map((pos,ti)=>pos===n?`<button class="boardPawn ${pi===ladderTurn&&ladderRolled!==null?'canPick':''}" data-pawn-player="${pi}" data-pawn-token="${ti}" style="--pawn:${p.color}" ${pi===ladderTurn&&ladderRolled!==null&&!p.cpu&&!ladderBusy?'':'disabled'} title="${p.label} ${p.name}"></button>`:'' )).join('');cells+=`<div class="classicCell" data-cell="${n}"><b>${n}</b><div class="cellPawns">${pawns}</div></div>`}
+ const cur=ladderPlayers[ladderTurn],ranking=[...ladderPlayers].sort((a,b)=>b.finished-a.finished||Math.max(...a.tokens)-Math.max(...b.tokens));
+ $('ladderStage').innerHTML=`<div class="ladderGamePage"><div class="gameTopline"><span>🐍 SNAKES &amp; LADDERS</span><button id="quitLadder">✕ EXIT</button></div><div class="classicBoardFrame"><div class="classicBoard">${cells}${ladderArt()}</div><div class="boardCenterMark"><b>FINISH</b><small>Reach 100</small></div></div><div class="ladderMessage" id="ladderMsg"><b style="color:${cur.color}">${cur.label} — ${cur.name} की बारी</b><br>${ladderLastMsg}</div><div class="ladderCornerGrid">${ladderPlayers.map((p,i)=>`<div class="ladderPlayerCard cornerCard ${i===ladderTurn?'activeTurn':''}" style="--player:${p.color}"><div class="cornerPlayerHead"><span class="cornerDot"></span><b>${p.label}</b><small>${p.name}${p.cpu?' 🤖':''}</small></div><div class="homePawns">${p.tokens.map((pos,ti)=>pos===0?ladderPawnButton(p,i,ti,'home'):`<span class="homeTokenOnBoard" title="Token ${ti+1}">${pos===100?'🏁':pos}</span>`).join('')}</div><button class="cornerDice ${i===ladderTurn?'turnDice':''}" data-roll-player="${i}" ${i!==ladderTurn||p.cpu||ladderBusy||p.finished===3||ladderRolled!==null?'disabled':''}><span class="diceSymbol" id="dice-${i}">${p.lastDice==='—'?'🎲':diceFaces[Number(p.lastDice)-1]}</span><span>ROLL DICE</span></button><small class="playerProgress">${p.finished}/3 FINISHED · ${p.tokens.filter(x=>x>0&&x<100).length} ON BOARD · ${p.tokens.filter(x=>x===0).length} HOME</small></div>`).join('')}</div><div class="ladderRankList"><div class="rankHead"><b>🏆 LEADERBOARD</b><button id="ladderTuneBtn" class="tuneToggle">${ladderTuneOn?'🎵 TUNE ON':'🔇 TUNE OFF'}</button></div>${ranking.map((p,i)=>`<div class="lbrow"><span>${i+1}. <b style="color:${p.color}">${p.label}</b> ${p.name}</span><b>${p.finished}/3</b></div>`).join('')}</div><div class="ladderLegend">डाइस रोल करें → अपनी चमकती गोटी चुनें। 1 से गोटी बाहर आएगी। 1 या 6 पर दोबारा मौका मिलेगा।</div></div>`;
+ $('quitLadder').onclick=()=>{if(confirm('गेम से बाहर निकलें?')){stopLadderTune();ladderStageMode='setup';ladderSetup()}};
+ $('ladderTuneBtn').onclick=()=>{ladderTuneOn=!ladderTuneOn;if(ladderTuneOn)startLadderTune();else stopLadderTune();$('ladderTuneBtn').textContent=ladderTuneOn?'🎵 TUNE ON':'🔇 TUNE OFF'};
+ document.querySelectorAll('[data-roll-player]').forEach(btn=>btn.onclick=()=>{if(Number(btn.dataset.rollPlayer)===ladderTurn)rollLadderDice(false)});
+ document.querySelectorAll('[data-pawn-player]').forEach(btn=>btn.onclick=()=>moveLadderToken(Number(btn.dataset.pawnPlayer),Number(btn.dataset.pawnToken)));
+ if(cur.cpu&&!ladderBusy&&ladderRolled===null&&cur.finished<3)setTimeout(()=>{if($('featurePanel').classList.contains('ladderMode')&&ladderPlayers[ladderTurn]?.cpu&&!ladderBusy&&ladderRolled===null)rollLadderDice(true)},650);
+}
+function ladderAudio(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}catch(e){return null}}
+function ladderBeep(freq,duration=.16,volume=.035,delay=0){const a=ladderAudio();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=freq;g.gain.setValueAtTime(.0001,a.currentTime+delay);g.gain.exponentialRampToValueAtTime(volume,a.currentTime+delay+.02);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+delay+duration);o.connect(g);g.connect(a.destination);o.start(a.currentTime+delay);o.stop(a.currentTime+delay+duration+.03)}
+function playLadderChime(n){ladderBeep(280+n*65,.2,.045);if(n===1||n===6)ladderBeep(740,.22,.035,.16)}
+function playLadderWin(){[523,659,784,1046].forEach((f,i)=>ladderBeep(f,.28,.05,i*.16))}
+function startLadderTune(){if(ladderTuneTimer)return;const notes=[392,494,587,659,587,494,440,523,659,784,659,523];let i=0;ladderAudio();ladderTuneTimer=setInterval(()=>{if(ladderTuneOn)ladderBeep(notes[i++%notes.length],.24,.012)},520)}
+function stopLadderTune(){if(ladderTuneTimer){clearInterval(ladderTuneTimer);ladderTuneTimer=null}}
+function rollLadderDice(fromCpu=false){
+ if(ladderBusy||ladderRolled!==null||!ladderPlayers.length)return;
+ const turnAtRoll=ladderTurn,p=ladderPlayers[turnAtRoll];if(p.cpu&&!fromCpu)return;
+ ladderBusy=true;ladderBoard();const dice=1+Math.floor(Math.random()*6),face=$('dice-'+turnAtRoll);let spin=null;
+ if(face){face.textContent='🎲';face.classList.add('diceRolling');let n=0;spin=setInterval(()=>{if(face.isConnected)face.textContent=diceFaces[n++%6]},75)}
+ setTimeout(()=>{
+  if(spin)clearInterval(spin);
+  p.lastDice=String(dice);ladderRolled=dice;ladderBusy=false;
+  const currentFace=$('dice-'+turnAtRoll);if(currentFace){currentFace.textContent=diceFaces[dice-1];currentFace.classList.remove('diceRolling')}
+  playLadderChime(dice);
+  const eligible=p.tokens.some(pos=>(pos===0&&dice===1)||(pos>0&&pos<100&&pos+dice<=100));
+  if(!eligible){ladderLastMsg=`${p.label} ने ${dice} फेंका। कोई गोटी नहीं चल सकती। अगला खिलाड़ी।`;ladderRolled=null;advanceLadderTurn(dice);return}
+  ladderLastMsg=`${p.label} ने ${dice} फेंका। अब अपनी चलने वाली गोटी चुनें।`;
+  ladderBoard();
+  if(p.cpu){const ti=p.tokens.findIndex(pos=>(pos===0&&dice===1)||(pos>0&&pos<100&&pos+dice<=100));setTimeout(()=>moveLadderToken(turnAtRoll,ti),450)}
+ },900);
+}
+function moveLadderToken(pi,ti){
+ if(pi!==ladderTurn||ladderRolled===null||ladderBusy)return;const p=ladderPlayers[pi],dice=ladderRolled;let pos=p.tokens[ti];if(!((pos===0&&dice===1)||(pos>0&&pos<100&&pos+dice<=100)))return;
+ ladderBusy=true;let msg='';if(pos===0){p.tokens[ti]=1;msg=`${p.label} की गोटी घर से बाहर आई और 1 पर पहुँची।`}else{pos+=dice;msg=`${p.label} की गोटी ${pos} पर पहुँची।`;if(ladders[pos]){msg+=` सीढ़ी! ${pos} → ${ladders[pos]}.`;pos=ladders[pos]}else if(snakes[pos]){msg+=` साँप! ${pos} → ${snakes[pos]}.`;pos=snakes[pos]}p.tokens[ti]=pos}
+ if(p.tokens[ti]===100){p.finished++;msg+=` 🏁 एक गोटी फिनिश!`}
+ if(p.finished===3){ladderWinner=p;ladderLastMsg=`🏆 ${p.name} ने अपनी तीनों गोटियाँ फिनिश कर दीं और गेम जीत लिया!`;ladderRolled=null;ladderBusy=false;playLadderWin();ladderBoard();return}
+ ladderLastMsg=msg;const extra=(dice===1||dice===6);ladderRolled=null;ladderBusy=false;if(!extra)advanceLadderTurn(dice);else{ladderLastMsg+=` ${dice} आया — ${p.label} को एक और मौका!`;ladderBoard()}
+}
+function advanceLadderTurn(dice){let tries=0;do{ladderTurn=(ladderTurn+1)%ladderPlayers.length;tries++}while(ladderPlayers[ladderTurn].finished===3&&tries<=ladderPlayers.length);ladderBoard()}
+$('ladderBtn').onclick=ladderSetup;
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){last=performance.now()}});
+})();
+</script>
+</body>
+</html>
